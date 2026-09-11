@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#f8fafc" />
+  <title>DOCX → Markdown</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232563eb'/%3E%3Cpath d='M20 16h18l8 8v24H20z' fill='white'/%3E%3Cpath d='M38 16v10h10' fill='none' stroke='%232563eb' stroke-width='4'/%3E%3Cpath d='M26 34h14M26 41h10' stroke='%232563eb' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: #0f172a;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(37, 99, 235, .08), transparent 30rem),
+        #f8fafc;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: rgba(37, 99, 235, .16); }
+    .surface {
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 14px 35px rgba(15, 23, 42, .06);
+    }
+    .drop-zone {
+      position: relative;
+      overflow: hidden;
+      border: 2px dashed #cbd5e1;
+      border-radius: 1.5rem;
+      background: #fff;
+      transition: border-color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+    .drop-zone:hover {
+      border-color: #60a5fa;
+      background: #f8fbff;
+    }
+    .drop-zone:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, .18);
+      outline-offset: 3px;
+    }
+    .drop-zone.drag {
+      transform: scale(1.004);
+      border-color: #2563eb;
+      background: #eff6ff;
+      box-shadow: 0 0 0 6px rgba(37, 99, 235, .08);
+    }
+    .drop-zone.drag .upload-icon {
+      transform: scale(1.08);
+      background: #2563eb;
+      color: #fff;
+    }
+    .upload-icon {
+      transition: transform .2s ease, background .2s ease, color .2s ease;
+    }
+    .editor-panel, .preview-panel {
+      width: 100%;
+      min-height: 30rem;
+      padding: 1.25rem;
+      border: 0;
+      background: #fff;
+      color: #1e293b;
+      font: 13px/1.6 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    .editor-panel {
+      resize: vertical;
+      outline: none;
+    }
+    .editor-panel:focus { box-shadow: inset 0 0 0 2px rgba(37, 99, 235, .10); }
+    .preview-panel {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      overflow: auto;
+    }
+    .soft-label { color: #64748b; }
+    .tiny-label { color: #94a3b8; }
+    .icon-tile { background: #f1f5f9; color: #475569; }
+    .hero-rule { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+    @media (max-width: 640px) {
+      .editor-panel, .preview-panel { min-height: 22rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+    <header class="mb-6 flex flex-col gap-5 lg:mb-8 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-3xl">
+        <div class="mb-3 flex items-center gap-2 text-sm font-semibold text-blue-600">
+          <span class="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+            <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/></svg>
+          </span>
+          Browser document utility
+        </div>
+        <h1 class="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">DOCX <span class="text-slate-300">→</span> Markdown</h1>
+        <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">Convert Word documents locally in your browser. Your file never leaves this device.</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="badge badge-success badge-soft h-9 gap-2 px-3 font-medium">
+          <span class="status status-success"></span>
+          Local processing
+        </div>
+        <div id="engine" class="badge badge-warning badge-outline h-9 gap-2 px-3 font-medium" aria-live="polite">
+          <span class="loading loading-spinner loading-xs"></span>
+          Loading engine…
+        </div>
+      </div>
+    </header>
+
+    <div class="mb-5 h-1 w-20 rounded-full hero-rule"></div>
+
+    <section class="surface rounded-[2rem] p-3 sm:p-4">
+      <input id="file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" />
+      <div id="drop" class="drop-zone group cursor-pointer px-5 py-10 text-center sm:px-8 sm:py-14" role="button" tabindex="0" aria-label="Choose a DOCX file or drop one here">
+        <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(37,99,235,0.06),transparent_48%)] opacity-0 transition-opacity group-hover:opacity-100"></div>
+        <div class="relative mx-auto flex max-w-xl flex-col items-center">
+          <div class="upload-icon icon-tile mb-5 flex size-16 items-center justify-center rounded-2xl ring-1 ring-slate-200 sm:size-20">
+            <svg viewBox="0 0 24 24" class="size-8 sm:size-9" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3"/></svg>
+          </div>
+          <h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Drop your DOCX file here</h2>
+          <p class="mt-2 text-sm leading-6 text-slate-500">or choose a file from your computer. Processing stays entirely on this device.</p>
+          <button id="browse" type="button" class="btn btn-primary btn-sm mt-5 gap-2 px-5 sm:btn-md">
+            <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3l2 2h8A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"/></svg>
+            Choose DOCX
+          </button>
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-400">
+            <span>.docx only</span><span class="hidden sm:inline">•</span><span>No upload</span><span class="hidden sm:inline">•</span><span>No backend</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="fileInfo" class="mt-4 hidden" aria-live="polite">
+      <div class="alert border border-slate-200 bg-white shadow-sm">
+        <svg viewBox="0 0 24 24" class="size-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v6h6"/></svg>
+        <div class="min-w-0">
+          <div id="fileName" class="truncate font-semibold text-slate-900"></div>
+          <div id="fileMeta" class="text-xs text-slate-500"></div>
+        </div>
+        <button id="changeFile" type="button" class="btn btn-ghost btn-sm">Change</button>
+      </div>
+    </section>
+
+    <section id="stats" class="mt-4 hidden grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"></section>
+
+    <section class="mt-5 grid gap-5 lg:grid-cols-2">
+      <article class="surface overflow-hidden rounded-3xl">
+        <div class="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+          <div>
+            <h2 class="font-semibold text-slate-900">Markdown</h2>
+            <p class="text-xs text-slate-400">Editable output</p>
+          </div>
+          <div class="flex gap-2">
+            <button id="copy" type="button" class="btn btn-ghost btn-sm gap-2" disabled>
+              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg>
+              <span>Copy</span>
+            </button>
+            <button id="save" type="button" class="btn btn-primary btn-sm gap-2" disabled>
+              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/></svg>
+              Save .md
+            </button>
+          </div>
+        </div>
+        <textarea id="out" class="editor-panel" spellcheck="false" placeholder="Markdown output will appear here…" aria-label="Markdown output"></textarea>
+      </article>
+
+      <article class="surface overflow-hidden rounded-3xl">
+        <div class="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+          <div>
+            <h2 class="font-semibold text-slate-900">Preview</h2>
+            <p class="text-xs text-slate-400">Safe plain-text preview</p>
+          </div>
+          <div class="badge badge-ghost badge-sm">Read only</div>
+        </div>
+        <pre id="preview" class="preview-panel">Choose a DOCX file to start.</pre>
+      </article>
+    </section>
+
+    <footer class="mt-6 flex flex-col gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+      <span>DOCX → Markdown • Local-first</span>
+      <span>Rust + WebAssembly • Browser only</span>
+    </footer>
+  </main>
+
+  <div id="toast" class="toast toast-end toast-bottom z-50 hidden">
+    <div class="alert alert-success shadow-lg"><span id="toastText">Done</span></div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

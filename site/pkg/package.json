@@ -1,0 +1,17 @@
+{
+  "name": "docx_markdown_wasm",
+  "type": "module",
+  "description": "Client-side DOCX to Markdown converter for WebAssembly",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "docx_markdown_wasm_bg.wasm",
+    "docx_markdown_wasm.js",
+    "docx_markdown_wasm.d.ts"
+  ],
+  "main": "docx_markdown_wasm.js",
+  "types": "docx_markdown_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
