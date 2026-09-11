@@ -49,13 +49,15 @@ jobs:
       - name: Prepare browser package
         run: |
           rm -rf dist
-          mkdir -p dist
+          mkdir -p dist/pkg
           cp -R web/. dist/
-          cp -R pkg dist/pkg
+          mkdir -p dist/pkg
+          cp -R pkg/. dist/pkg/
           cp README.md dist/README.md
           touch dist/.nojekyll
           test -s dist/index.html
           test -s dist/pkg/docx_markdown_wasm_bg.wasm
+          test -s dist/pkg/docx_markdown_wasm.js
 
       - name: Upload compiled browser app
         uses: actions/upload-artifact@v4
