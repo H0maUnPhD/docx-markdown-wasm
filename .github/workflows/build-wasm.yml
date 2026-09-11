@@ -1,10 +1,19 @@
-name: Build Rust WASM
+name: Build and Deploy Rust WASM
 
 on:
   workflow_dispatch:
   push:
     branches: ["main"]
   pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -41,9 +50,12 @@ jobs:
         run: |
           rm -rf dist
           mkdir -p dist
-          cp -R web dist/web
+          cp -R web/. dist/
           cp -R pkg dist/pkg
           cp README.md dist/README.md
+          touch dist/.nojekyll
+          test -s dist/index.html
+          test -s dist/pkg/docx_markdown_wasm_bg.wasm
 
       - name: Upload compiled browser app
         uses: actions/upload-artifact@v4
@@ -52,3 +64,27 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
