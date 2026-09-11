@@ -1,16 +1,138 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>DOCX → Markdown • Local</title>
-<style>
-:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color-scheme:dark;background:#0b1020;color:#edf2ff}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 0,#1c2b59 0,transparent 35%),#0b1020}.wrap{max-width:1100px;margin:auto;padding:38px 20px}.head{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:20px}h1{margin:0;font-size:clamp(30px,5vw,52px)}.tag{color:#9db0df}.pill{padding:8px 12px;border:1px solid #33456f;border-radius:999px;color:#bcd0ff}.drop{border:1.5px dashed #4862a3;border-radius:22px;padding:28px;text-align:center;background:#111936cc;cursor:pointer}.drop.drag{border-color:#9bb7ff;background:#172249}.drop strong{font-size:18px}.small{font-size:13px;color:#9db0df}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.card{background:#111936;border:1px solid #25345d;border-radius:18px;overflow:hidden}.bar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #25345d}.bar b{font-size:14px}.actions{display:flex;gap:8px}button{background:#233763;color:#fff;border:1px solid #3d568e;padding:8px 11px;border-radius:10px;cursor:pointer}button:hover{background:#2d477f}textarea,pre{margin:0;width:100%;height:420px;padding:16px;background:#0c132a;color:#eaf0ff;border:0;outline:0;resize:vertical;font:14px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow:auto}.stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.stat{background:#111936;border:1px solid #25345d;border-radius:12px;padding:8px 10px;font-size:13px}.ok{color:#88e0a4}.warn{color:#ffd27b}@media(max-width:800px){.grid{grid-template-columns:1fr}.head{align-items:start;flex-direction:column}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>DOCX → Markdown</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    @layer base {
+      body { @apply min-h-screen bg-base-200/40 text-base-content antialiased; }
+      ::selection { @apply bg-primary/15; }
+    }
+    @layer components {
+      .surface { @apply border border-base-300/80 bg-base-100 shadow-[0_1px_2px_rgba(15,23,42,.04),0_14px_35px_rgba(15,23,42,.06)]; }
+      .drop-zone { @apply relative overflow-hidden rounded-3xl border-2 border-dashed border-base-300 bg-base-100 transition-all duration-200; }
+      .drop-zone:hover { @apply border-primary/45 bg-primary/[0.02]; }
+      .drop-zone.drag { @apply scale-[1.005] border-primary bg-primary/[0.06] shadow-[0_0_0_6px_rgba(59,130,246,.07)]; }
+      .drop-zone.drag .upload-icon { @apply scale-110 bg-primary text-primary-content; }
+      .editor-panel { @apply min-h-[30rem] w-full resize-y border-0 bg-base-100 p-5 font-mono text-[13px] leading-6 outline-none; }
+      .preview-panel { @apply min-h-[30rem] whitespace-pre-wrap break-words bg-base-100 p-5 font-mono text-[13px] leading-6 text-base-content/80; }
+    }
+  </style>
 </head>
-<body><main class="wrap">
-<div class="head"><div><h1>DOCX → Markdown</h1><div class="tag">Private, local conversion in your browser. No upload, no backend.</div></div><div id="engine" class="pill">Engine: loading…</div></div>
-<label class="drop" id="drop"><input id="file" type="file" accept=".docx" hidden><strong>Drop a .docx file here</strong><div class="small">or click to choose a file • processing stays on this device</div></label>
-<div class="stats" id="stats"></div>
-<div class="grid"><section class="card"><div class="bar"><b>Markdown</b><div class="actions"><button id="copy">Copy</button><button id="save">Save .md</button></div></div><textarea id="out" placeholder="Markdown output will appear here…"></textarea></section><section class="card"><div class="bar"><b>Preview</b><span class="small">safe text preview</span></div><pre id="preview">Choose a DOCX file to start.</pre></section></div>
-</main><script type="module" src="./app.js"></script></body></html>
+<body>
+  <div class="pointer-events-none fixed inset-x-0 top-0 -z-10 h-72 bg-gradient-to-b from-primary/[0.06] to-transparent"></div>
+
+  <main class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+    <header class="mb-6 flex flex-col gap-5 lg:mb-8 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-3xl">
+        <div class="mb-3 flex items-center gap-2 text-sm font-medium text-primary">
+          <span class="flex size-8 items-center justify-center rounded-xl bg-primary/10">
+            <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/></svg>
+          </span>
+          Browser document utility
+        </div>
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">DOCX <span class="text-base-content/35">→</span> Markdown</h1>
+        <p class="mt-3 max-w-2xl text-sm leading-6 text-base-content/60 sm:text-base">Convert Word documents locally in your browser. Your file never leaves this device.</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="badge badge-success badge-soft h-9 gap-2 px-3 font-medium">
+          <span class="status status-success"></span>
+          Local processing
+        </div>
+        <div id="engine" class="badge badge-warning badge-outline h-9 gap-2 px-3 font-medium" aria-live="polite">
+          <span class="loading loading-spinner loading-xs"></span>
+          Loading engine…
+        </div>
+      </div>
+    </header>
+
+    <section class="surface rounded-[2rem] p-3 sm:p-4">
+      <input id="file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" />
+      <div id="drop" class="drop-zone group cursor-pointer px-5 py-10 text-center sm:px-8 sm:py-14" role="button" tabindex="0" aria-label="Choose a DOCX file or drop one here">
+        <div class="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100" style="background:radial-gradient(circle at 50% 20%, color-mix(in oklab, var(--color-primary) 8%, transparent), transparent 48%)"></div>
+        <div class="relative mx-auto flex max-w-xl flex-col items-center">
+          <div class="upload-icon mb-5 flex size-16 items-center justify-center rounded-2xl bg-base-200 text-base-content/65 transition-all duration-200 sm:size-20">
+            <svg viewBox="0 0 24 24" class="size-8 sm:size-9" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3"/></svg>
+          </div>
+          <h2 class="text-lg font-semibold sm:text-xl">Drop your DOCX file here</h2>
+          <p class="mt-2 text-sm leading-6 text-base-content/55">or choose a file from your computer. Processing stays entirely on this device.</p>
+          <button id="browse" type="button" class="btn btn-primary btn-sm mt-5 gap-2 px-5 sm:btn-md">
+            <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3l2 2h8A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"/></svg>
+            Choose DOCX
+          </button>
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-base-content/45">
+            <span>.docx only</span><span class="hidden sm:inline">•</span><span>No upload</span><span class="hidden sm:inline">•</span><span>No backend</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="fileInfo" class="mt-4 hidden" aria-live="polite">
+      <div class="alert border border-base-300 bg-base-100 shadow-sm">
+        <svg viewBox="0 0 24 24" class="size-5 shrink-0 text-primary" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v6h6"/></svg>
+        <div class="min-w-0">
+          <div id="fileName" class="truncate font-semibold"></div>
+          <div id="fileMeta" class="text-xs text-base-content/55"></div>
+        </div>
+        <button id="changeFile" type="button" class="btn btn-ghost btn-sm">Change</button>
+      </div>
+    </section>
+
+    <section id="stats" class="mt-4 hidden grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"></section>
+
+    <section class="mt-5 grid gap-5 lg:grid-cols-2">
+      <article class="surface overflow-hidden rounded-3xl">
+        <div class="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-base-300/80 px-4 py-3 sm:px-5">
+          <div>
+            <h2 class="font-semibold">Markdown</h2>
+            <p class="text-xs text-base-content/45">Editable output</p>
+          </div>
+          <div class="flex gap-2">
+            <button id="copy" type="button" class="btn btn-ghost btn-sm gap-2" disabled>
+              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg>
+              <span>Copy</span>
+            </button>
+            <button id="save" type="button" class="btn btn-primary btn-sm gap-2" disabled>
+              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/></svg>
+              Save .md
+            </button>
+          </div>
+        </div>
+        <textarea id="out" class="editor-panel" spellcheck="false" placeholder="Markdown output will appear here…" aria-label="Markdown output"></textarea>
+      </article>
+
+      <article class="surface overflow-hidden rounded-3xl">
+        <div class="flex min-h-16 items-center justify-between gap-3 border-b border-base-300/80 px-4 py-3 sm:px-5">
+          <div>
+            <h2 class="font-semibold">Preview</h2>
+            <p class="text-xs text-base-content/45">Safe plain-text preview</p>
+          </div>
+          <div class="badge badge-ghost badge-sm">Read only</div>
+        </div>
+        <pre id="preview" class="preview-panel overflow-auto">Choose a DOCX file to start.</pre>
+      </article>
+    </section>
+
+    <footer class="mt-6 flex flex-col gap-2 border-t border-base-300/70 pt-5 text-xs text-base-content/45 sm:flex-row sm:items-center sm:justify-between">
+      <span>DOCX → Markdown • Local-first</span>
+      <span>Rust + WebAssembly • Browser only</span>
+    </footer>
+  </main>
+
+  <div id="toast" class="toast toast-end toast-bottom z-50 hidden">
+    <div class="alert alert-success shadow-lg"><span id="toastText">Done</span></div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
