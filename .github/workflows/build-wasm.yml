@@ -55,7 +55,25 @@ jobs:
           cp -R pkg/. dist/pkg/
           cp README.md dist/README.md
           touch dist/.nojekyll
+
+          # Backward-compatible route because older links used /web/.
+          mkdir -p dist/web
+          cat > dist/web/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width,initial-scale=1" />
+            <meta http-equiv="refresh" content="0; url=../" />
+            <title>DOCX → Markdown</title>
+            <script>location.replace('../');</script>
+          </head>
+          <body><p>Opening app… <a href="../">Continue</a></p></body>
+          </html>
+          EOF
+
           test -s dist/index.html
+          test -s dist/web/index.html
           test -s dist/pkg/docx_markdown_wasm_bg.wasm
           test -s dist/pkg/docx_markdown_wasm.js
 
