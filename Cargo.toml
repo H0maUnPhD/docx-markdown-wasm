@@ -1,0 +1,16 @@
+[package]
+name = "docx_markdown_wasm"
+version = "0.1.0"
+edition = "2021"
+description = "Client-side DOCX to Markdown converter for WebAssembly"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+quick-xml = "0.37"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
