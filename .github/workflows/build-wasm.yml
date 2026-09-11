@@ -1,0 +1,54 @@
+name: Build Rust WASM
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust builds
+        uses: Swatinem/rust-cache@v2
+
+      - name: Test Rust code
+        run: cargo test
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
+      - name: Compile Rust to WebAssembly
+        run: wasm-pack build --target web --out-dir pkg --release
+
+      - name: Verify WASM output
+        run: |
+          test -s pkg/docx_markdown_wasm_bg.wasm
+          test -s pkg/docx_markdown_wasm.js
+          ls -lh pkg/
+
+      - name: Prepare browser package
+        run: |
+          rm -rf dist
+          mkdir -p dist
+          cp -R web dist/web
+          cp -R pkg dist/pkg
+          cp README.md dist/README.md
+
+      - name: Upload compiled browser app
+        uses: actions/upload-artifact@v4
+        with:
+          name: docx-markdown-wasm-build
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
